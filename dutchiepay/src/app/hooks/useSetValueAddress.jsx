@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import CryptoJS from 'crypto-js';
+import axios from 'axios';
 import { useSelector } from 'react-redux';
 
 const useSetValueAddress = (addressId, setValue) => {
@@ -8,16 +8,13 @@ const useSetValueAddress = (addressId, setValue) => {
   const [isDefaultAddress, setIsDefaultAddress] = useState(false);
 
   useEffect(() => {
-    const fetchAddress = () => {
+    const fetchAddress = async () => {
       try {
-        const decrypted = JSON.parse(
-          CryptoJS.AES.decrypt(
-            encryptedAddresses,
-            process.env.NEXT_PUBLIC_SECRET_KEY
-          ).toString(CryptoJS.enc.Utf8)
-        );
+        const decryptedData = await axios.post('/api/address/encrypt', {
+          encrypted: encryptedAddresses,
+        });
 
-        const findAddress = decrypted.find(
+        const findAddress = decryptedData.data.decrypted.find(
           (address) => address.addressId === Number(addressId)
         );
 

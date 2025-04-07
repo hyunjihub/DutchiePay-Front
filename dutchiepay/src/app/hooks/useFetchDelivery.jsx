@@ -1,7 +1,6 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { useEffect, useRef, useState } from 'react';
 
-import CryptoJS from 'crypto-js';
 import axios from 'axios';
 import { setAddresses } from '@/redux/slice/addressSlice';
 import useReissueToken from './useReissueToken';
@@ -33,14 +32,16 @@ export default function useFetchDelivery() {
             }
           );
           setDeliveryAddress(response.data);
-          const encryptData = CryptoJS.AES.encrypt(
-            JSON.stringify(response.data),
-            process.env.NEXT_PUBLIC_SECRET_KEY
-          ).toString();
+          const encryptData = await axios.post('/api/address/encrypt', {
+            decrypted: response.data,
+          });
           if (isChanged) {
-            channel.postMessage({ type: 'change-address', data: encryptData });
+            channel.postMessage({
+              type: 'change-address',
+              data: encryptData.data.encrypt,
+            });
           }
-          dispatch(setAddresses(encryptData));
+          dispatch(setAddresses(encryptData.data.encrypt));
           setIsChanged(false);
         } catch (error) {
           const reissueResponse = await refreshAccessToken();
@@ -55,14 +56,10 @@ export default function useFetchDelivery() {
           }
         }
       } else {
-        setDeliveryAddress(
-          JSON.parse(
-            CryptoJS.AES.decrypt(
-              encryptedAddresses,
-              process.env.NEXT_PUBLIC_SECRET_KEY
-            ).toString(CryptoJS.enc.Utf8)
-          )
-        );
+        const decryptedData = await axios.post('/api/address/encrypt', {
+          encrypted: encryptedAddresses,
+        });
+        setDeliveryAddress(decryptedData.data.decrypted);
       }
     };
     if (!encryptedAddresses || isChanged) hasFetched.current = false;
